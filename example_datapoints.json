@@ -1,0 +1,303 @@
+{
+  "framework": "Illustrative EBA-style datapoint set",
+  "taxonomy_version": "sample-1.0",
+  "datapoints": [
+    {
+      "datapoint_id": "J 05.00 r0010 c0010",
+      "name": "Change in economic value of equity (ΔEVE)",
+      "framework": "IRRBB",
+      "metric": {
+        "data_type": "Monetary",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Main category",
+          "domain": "IRRBB measure",
+          "member": "Economic value of equity"
+        },
+        {
+          "dim": "Scenario",
+          "domain": "Interest rate scenario",
+          "member": "Supervisory shock scenario"
+        }
+      ],
+      "table_coordinate": {
+        "table": "J 05.00",
+        "cell": "r0010/c0010"
+      },
+      "definition": "change in economic value of equity under supervisory interest rate shock scenarios, non-trading book banking book",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "J 06.00 r0010 c0010",
+      "name": "Net interest income sensitivity",
+      "framework": "IRRBB",
+      "metric": {
+        "data_type": "Monetary",
+        "period": "Duration"
+      },
+      "dimensions": [
+        {
+          "dim": "Main category",
+          "domain": "IRRBB measure",
+          "member": "Net interest income"
+        },
+        {
+          "dim": "Time horizon",
+          "domain": "Time band",
+          "member": "12 months"
+        }
+      ],
+      "table_coordinate": {
+        "table": "J 06.00",
+        "cell": "r0010/c0010"
+      },
+      "definition": "sensitivity of net interest income to interest rate changes over a twelve month horizon under shock scenarios",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "J 07.00 r0020 c0010",
+      "name": "Supervisory outlier test – decline vs Tier 1",
+      "framework": "IRRBB",
+      "metric": {
+        "data_type": "Percentage",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Main category",
+          "domain": "IRRBB measure",
+          "member": "Economic value of equity decline"
+        },
+        {
+          "dim": "Reference amount",
+          "domain": "Own funds",
+          "member": "Tier 1 capital"
+        }
+      ],
+      "table_coordinate": {
+        "table": "J 07.00",
+        "cell": "r0020/c0010"
+      },
+      "definition": "supervisory outlier test where the decline in economic value of equity exceeds the threshold of Tier 1 own funds",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "F 18.00 r0070 c0010",
+      "name": "Non-performing exposures – gross carrying amount",
+      "framework": "FINREP",
+      "metric": {
+        "data_type": "Monetary",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Credit quality",
+          "domain": "Performing status",
+          "member": "Non-performing"
+        },
+        {
+          "dim": "Valuation",
+          "domain": "Accounting",
+          "member": "Gross carrying amount"
+        }
+      ],
+      "table_coordinate": {
+        "table": "F 18.00",
+        "cell": "r0070/c0010"
+      },
+      "definition": "gross carrying amount of non-performing exposures loans and advances past due unlikely to pay",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "F 19.00 r0080 c0010",
+      "name": "Forborne exposures – forbearance measures",
+      "framework": "FINREP",
+      "metric": {
+        "data_type": "Monetary",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Credit quality",
+          "domain": "Forbearance status",
+          "member": "Exposures with forbearance measures"
+        },
+        {
+          "dim": "Valuation",
+          "domain": "Accounting",
+          "member": "Gross carrying amount"
+        }
+      ],
+      "table_coordinate": {
+        "table": "F 19.00",
+        "cell": "r0080/c0010"
+      },
+      "definition": "exposures subject to forbearance measures concessions granted to a debtor facing financial difficulties refinancing modification",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "OUT 01.00 r0010 c0050",
+      "name": "Outsourcing register – critical or important function",
+      "framework": "Outsourcing",
+      "metric": {
+        "data_type": "Boolean",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Function type",
+          "domain": "Outsourcing",
+          "member": "Critical or important function"
+        },
+        {
+          "dim": "Provider",
+          "domain": "Service provider",
+          "member": "Cloud service provider"
+        }
+      ],
+      "table_coordinate": {
+        "table": "OUT 01.00",
+        "cell": "r0010/c0050"
+      },
+      "definition": "register of outsourcing arrangements recording whether the outsourced function is critical or important and the service provider",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "ICAAP 02.00 r0030 c0010",
+      "name": "ICAAP internal capital",
+      "framework": "ICAAP / SREP",
+      "metric": {
+        "data_type": "Monetary",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Capital concept",
+          "domain": "Internal capital",
+          "member": "Total internal capital"
+        },
+        {
+          "dim": "Purpose",
+          "domain": "Assessment",
+          "member": "ICAAP"
+        }
+      ],
+      "table_coordinate": {
+        "table": "ICAAP 02.00",
+        "cell": "r0030/c0010"
+      },
+      "definition": "internal capital and capital allocation under the internal capital adequacy assessment process ICAAP to cover risks",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "F 12.01 r0010 c0010",
+      "name": "Expected credit loss allowance (IFRS 9)",
+      "framework": "FINREP",
+      "metric": {
+        "data_type": "Monetary",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Allowance type",
+          "domain": "Impairment",
+          "member": "Allowances for expected credit losses"
+        },
+        {
+          "dim": "Stage",
+          "domain": "IFRS 9 stage",
+          "member": "Stage 2 lifetime ECL"
+        }
+      ],
+      "table_coordinate": {
+        "table": "F 12.01",
+        "cell": "r0010/c0010"
+      },
+      "definition": "allowances for expected credit losses accounting for impairment and provisioning of credit losses",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "REC 01.00 r0010 c0010",
+      "name": "Recovery plan indicator – CET1 ratio",
+      "framework": "Recovery planning",
+      "metric": {
+        "data_type": "Percentage",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Indicator category",
+          "domain": "Recovery indicator",
+          "member": "Capital"
+        },
+        {
+          "dim": "Measure",
+          "domain": "Own funds ratio",
+          "member": "Common Equity Tier 1 ratio"
+        }
+      ],
+      "table_coordinate": {
+        "table": "REC 01.00",
+        "cell": "r0010/c0010"
+      },
+      "definition": "recovery plan capital indicators such as the common equity tier 1 ratio to identify points at which recovery actions may be taken",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "INC 01.00 r0010 c0010",
+      "name": "Major operational or security incident (PSD2)",
+      "framework": "PSD2 incident reporting",
+      "metric": {
+        "data_type": "Boolean",
+        "period": "Instant"
+      },
+      "dimensions": [
+        {
+          "dim": "Incident class",
+          "domain": "Incident",
+          "member": "Major operational or security incident"
+        },
+        {
+          "dim": "Reporter",
+          "domain": "Entity",
+          "member": "Payment service provider"
+        }
+      ],
+      "table_coordinate": {
+        "table": "INC 01.00",
+        "cell": "r0010/c0010"
+      },
+      "definition": "classification and reporting of a major operational or security incident by a payment service provider to the competent authority",
+      "legal_reference": null
+    },
+    {
+      "datapoint_id": "HE 01.00 r0010 c0010",
+      "name": "High earners – count in EUR 1–5m band",
+      "framework": "Remuneration (high earners)",
+      "metric": {
+        "data_type": "Integer",
+        "period": "Duration"
+      },
+      "dimensions": [
+        {
+          "dim": "Remuneration band",
+          "domain": "Pay band",
+          "member": "EUR 1 000 000 to 5 000 000"
+        },
+        {
+          "dim": "Population",
+          "domain": "Staff",
+          "member": "High earners"
+        }
+      ],
+      "table_coordinate": {
+        "table": "HE 01.00",
+        "cell": "r0010/c0010"
+      },
+      "definition": "number of natural persons remunerated one million euro or more per financial year broken down by pay band high earners",
+      "legal_reference": null
+    }
+  ]
+}

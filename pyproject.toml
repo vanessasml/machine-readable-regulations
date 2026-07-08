@@ -1,0 +1,17 @@
+[project]
+name = "reg-datapoint-mapper"
+version = "0.1.0"
+description = "Prototype: map DPM datapoints to the EBA regulation provisions that define them. Consumes the regulation-parser package for PDF ingestion."
+readme = "README.md"
+requires-python = ">=3.12"
+
+# The parser is pulled straight from GitHub. Pin to a tag/commit for reproducibility,
+# e.g. ...eba-regulations-parser.git@v0.1.0
+# (distribution name is 'regulation-parser'; the GitHub repo is 'eba-regulations-parser')
+dependencies = [
+    "regulation-parser @ git+https://github.com/vanessasml/eba-regulations-parser.git",
+]
+
+# This is an application, not a library — no build backend needed.
+[tool.uv]
+package = false

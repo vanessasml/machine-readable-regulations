@@ -1,0 +1,11 @@
+# Ingested regulation JSON (regenerate with: python ingest.py)
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# generated app (rebuild with: python build_ui.py)
+review.html
+.DS_Store

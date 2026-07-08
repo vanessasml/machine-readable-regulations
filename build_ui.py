@@ -1,0 +1,605 @@
+"""Assemble the self-contained app (review.html) with four tabs:
+   ① Review              — human-in-the-loop confirmation of each datapoint -> provision link
+   ② Supervisor register — combined traceability register (forward, reverse, KPIs, CSV)
+   ③ Regulations         — browse the ingested EBA regulations and their paragraphs
+   ④ Datapoints          — view the ingested datapoints document(s)
+
+Embeds three datasets: matches (DATA), regulation leaves (REGS), datapoint docs (DPDOCS).
+"""
+import json, os, glob, sys, csv
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from match import DOC_TITLES  # reuse the human titles
+
+OUTPUT_DIR = os.environ.get("REG_JSON_DIR", os.path.join(HERE, "data", "regulations"))
+data = json.load(open(os.path.join(HERE, "matches.json"), encoding="utf-8"))
+
+
+def load_regs():
+    regs = []
+    for path in sorted(glob.glob(os.path.join(OUTPUT_DIR, "*.json"))):
+        d = json.load(open(path, encoding="utf-8"))
+        stem = os.path.splitext(os.path.basename(path))[0]
+        leaves = []
+        for l in d["leaves"]:
+            text = (l.get("text") or "").strip()
+            if not text:
+                continue
+            leaves.append({
+                "label": l.get("label") or l.get("id"),
+                "kind": l.get("kind"),
+                "crumb": " › ".join(l.get("breadcrumb") or []),
+                "page": l.get("span", {}).get("page_start"),
+                "text": text if len(text) <= 2000 else text[:2000] + " …",
+            })
+        regs.append({
+            "stem": stem,
+            "title": DOC_TITLES.get(stem, d.get("doc_id", stem)),
+            "filename": d.get("filename", stem + ".pdf"),
+            "pages": d.get("pages"),
+            "paragraphs": len(leaves),
+            "leaves": leaves,
+        })
+    return regs
+
+
+def load_dpdocs():
+    docs = []
+    p = os.path.join(HERE, "example_datapoints.json")
+    if os.path.exists(p):
+        d = json.load(open(p, encoding="utf-8"))
+        docs.append({
+            "filename": "example_datapoints.csv / .json",
+            "framework": d.get("framework", ""),
+            "taxonomy_version": d.get("taxonomy_version", ""),
+            "datapoints": d.get("datapoints", []),
+        })
+    return docs
+
+
+def load_banks():
+    banks = []
+    for path in sorted(glob.glob(os.path.join(HERE, "bank_returns", "*.csv"))):
+        rows = list(csv.DictReader(open(path, encoding="utf-8")))
+        if not rows:
+            continue
+        banks.append({
+            "filename": os.path.basename(path),
+            "name": rows[0]["entity_name"],
+            "lei": rows[0]["entity_lei"],
+            "date": rows[0]["reference_date"],
+            "values": {r["datapoint_id"]: {"value": r["value"], "unit": r["unit"]} for r in rows},
+        })
+    return banks
+
+
+regs = load_regs()
+dpdocs = load_dpdocs()
+banks = load_banks()
+
+TEMPLATE = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datapoint → Regulation mapping</title>
+<style>
+  :root{
+    --navy:#1f3864; --blue:#2e6fb0; --bg:#f4f6f9; --card:#fff; --line:#e2e6ec;
+    --ink:#1c2430; --muted:#66707d; --high:#1f9d63; --med:#d98a00; --low:#9aa4b0;
+    --accept:#1f9d63; --reject:#c2413b; --proposed:#8a93a0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  header{background:var(--navy);color:#fff;padding:18px 28px}
+  header h1{margin:0;font-size:19px;font-weight:700}
+  header p{margin:4px 0 0;color:#c7d3e6;font-size:13px}
+  .tabs{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+  .tab{background:#2a4a7a;color:#dbe6f5;border:none;padding:8px 16px;border-radius:8px 8px 0 0;
+    cursor:pointer;font:inherit;font-size:14px}
+  .tab.on{background:var(--bg);color:var(--navy);font-weight:700}
+  .tabgroup{align-self:flex-end;color:#9fb2cf;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.09em;padding:0 4px 9px;white-space:nowrap}
+  .tabgroup::before{content:"";display:inline-block;width:1px;height:12px;
+    margin-right:8px;vertical-align:-2px;background:#3f5f92}
+  .tabgroup:first-child::before{display:none}
+  .wrap{max-width:1040px;margin:0 auto;padding:18px}
+  .view{display:none} .view.on{display:block}
+
+  .toolbar{position:sticky;top:0;z-index:5;background:var(--bg);
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:8px}
+  select,button,input[type=search]{font:inherit;border:1px solid var(--line);background:#fff;
+    border-radius:8px;padding:7px 11px;color:var(--ink)}
+  select,button{cursor:pointer}
+  input[type=search]{min-width:220px}
+  button.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .progress{flex:1;min-width:140px;height:8px;background:#e6eaf0;border-radius:6px;overflow:hidden}
+  .progress > i{display:block;height:100%;background:var(--high);width:0}
+  .pcount{font-size:13px;color:var(--muted);white-space:nowrap}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;margin:14px 0;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .card.done{border-color:#bfe3cd;background:#fbfffc}
+  .card.skip{opacity:.62}
+  .dp-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .code{font:12px ui-monospace,Menlo,monospace;background:#eef2f8;color:var(--navy);
+    padding:3px 8px;border-radius:6px;font-weight:600}
+  .dp-name{font-weight:700;font-size:16px}
+  .status-pill{margin-left:auto;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px}
+  .status-pill.undecided{background:#eef1f5;color:var(--muted)}
+  .status-pill.accepted{background:#e4f5ec;color:var(--high)}
+  .status-pill.none{background:#f7e9e8;color:var(--reject)}
+  .meta{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+  .mchip{font-size:12px;background:#f0f4fa;border:1px solid #dbe4f0;color:#33465e;
+    padding:2px 9px;border-radius:20px}
+  .mchip b{color:var(--navy)}
+  .dp-note{color:var(--muted);font-size:13px;margin:6px 0 10px}
+  .cand{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0}
+  .cand.chosen{border-color:var(--accept);box-shadow:0 0 0 2px #d9f0e2 inset}
+  .cand.rejected{opacity:.5}
+  .cand-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .conf{display:flex;align-items:center;gap:8px;min-width:150px}
+  .bar{width:70px;height:7px;border-radius:5px;background:#e6eaf0;overflow:hidden}
+  .bar > i{display:block;height:100%}
+  .conf b{font-size:13px}
+  .pill{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    padding:2px 8px;border-radius:20px;color:#fff}
+  .pill.high{background:var(--high)} .pill.medium{background:var(--med)} .pill.low{background:var(--low)}
+  .cite{font:12px ui-monospace,Menlo,monospace;background:#f0f4fa;border:1px solid #dbe4f0;
+    color:var(--navy);padding:3px 8px;border-radius:6px;cursor:copy}
+  .cite:hover{background:#e3ecf8}
+  .doc{font-size:12.5px;color:var(--blue);font-weight:600}
+  .crumb{font-size:12px;color:var(--muted);margin:2px 0 6px}
+  .evi{font-size:13.5px;background:#fafbfd;border-left:3px solid #cdd8e6;
+    padding:8px 12px;border-radius:0 6px 6px 0;color:#2a333f}
+  .cand-actions{display:flex;gap:8px;margin-top:10px}
+  .btn-accept{border-color:var(--accept);color:var(--accept)}
+  .btn-accept.on{background:var(--accept);color:#fff}
+  .btn-reject{border-color:var(--reject);color:var(--reject)}
+  .btn-reject.on{background:var(--reject);color:#fff}
+  .dp-foot{margin-top:10px}
+  .link-none{background:none;border:none;color:var(--muted);text-decoration:underline;
+    font-size:13px;padding:4px 0}
+
+  .kpis{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 16px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:120px}
+  .kpi b{display:block;font-size:22px;color:var(--navy)} .kpi span{font-size:12px;color:var(--muted)}
+  h3.sec{font-size:15px;color:var(--navy);margin:22px 0 8px}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef2f8;color:var(--navy);font-size:12px}
+  tr:last-child td{border-bottom:none}
+  td.mono,.mono{font-family:ui-monospace,Menlo,monospace}
+  td.mono{font-size:12px;color:var(--navy);white-space:nowrap}
+  .tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+  .tag.accepted{background:#e4f5ec;color:var(--high)}
+  .tag.proposed{background:#eef1f5;color:var(--proposed)}
+  .tag.none{background:#f7e9e8;color:var(--reject)}
+  .reg-group{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:10px 0}
+  .reg-group h4{margin:0 0 4px;font-size:14px;color:var(--navy)}
+  .reg-group .rc{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .reg-item{font-size:12.5px;padding:4px 0;border-top:1px solid #f0f2f6;display:flex;gap:10px}
+  .reg-item .mono{color:var(--navy);white-space:nowrap}
+
+  /* regulation browser */
+  .leaf{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:8px 0}
+  .leaf-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px}
+  .page-badge{font-size:11px;background:#eef2f8;color:var(--navy);padding:2px 8px;border-radius:20px}
+  .leaf .ptext{font-size:13.5px;color:#25303d}
+  .leaf .crumb{margin:0 0 4px}
+  .docmeta{color:var(--muted);font-size:13px;margin:2px 0 10px}
+  .dimchips{display:flex;gap:5px;flex-wrap:wrap}
+
+  footer{max-width:1040px;margin:0 auto;padding:10px 20px 40px;color:var(--muted);font-size:12px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    background:#1c2430;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;
+    opacity:0;transition:.25s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Datapoint → Regulation mapping</h1>
+  <p>From the law to comparable supervisory data — two inputs, an automated mapping engine, and the outputs it unlocks.</p>
+  <div class="tabs">
+    <span class="tabgroup">Inputs</span>
+    <button class="tab on" data-view="regs">① Regulations</button>
+    <button class="tab" data-view="dps">② Datapoints</button>
+    <span class="tabgroup">Engine</span>
+    <button class="tab" data-view="review">③ Regulation → Datapoint mapping</button>
+    <span class="tabgroup">What it unlocks</span>
+    <button class="tab" data-view="register">④ Supervisor register</button>
+    <button class="tab" data-view="banks">⑤ Bank returns</button>
+    <button class="tab" data-view="overview">⑥ Banks overview</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="view" id="v-review">
+    <h3 class="sec" style="margin:6px 0 2px">Regulation → Datapoint mapping <span style="font-weight:400;color:var(--muted)">· the engine</span></h3>
+    <p style="font-size:12.5px;color:var(--muted);margin:0 0 8px">For each datapoint the engine proposes the regulation provisions that define it, with a confidence score and the quoted legal text. A reviewer confirms, corrects, or rejects — nothing becomes "confirmed" without a human.</p>
+    <div class="toolbar">
+      <label>Show
+        <select id="filter">
+          <option value="all">all datapoints</option>
+          <option value="undecided">undecided</option>
+          <option value="accepted">confirmed</option>
+          <option value="none">no match</option>
+        </select>
+      </label>
+      <div class="progress"><i id="pbar"></i></div>
+      <span class="pcount" id="pcount">0 / 0 reviewed</span>
+      <button class="primary" id="export">Export decisions</button>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section class="view" id="v-register">
+    <div class="toolbar">
+      <label>Framework <select id="regfw"></select></label>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <h3 class="sec" style="margin-right:auto">Combined mapping register</h3>
+      <button class="primary" id="csv">Export register (CSV)</button>
+    </div>
+    <div id="regtable"></div>
+    <h3 class="sec">By regulation — which datapoints derive from each document</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin:0 0 6px">
+      The reverse index. Read it the other way for impact analysis: if a provision is amended, these are the datapoints affected.</p>
+    <div id="byreg"></div>
+  </section>
+
+  <section class="view on" id="v-regs">
+    <div class="toolbar">
+      <label>Regulation <select id="regsel"></select></label>
+      <input type="search" id="regfilter" placeholder="filter paragraphs in this document…">
+      <span class="pcount" id="regcount"></span>
+    </div>
+    <div class="docmeta" id="regmeta"></div>
+    <div id="regbody"></div>
+  </section>
+
+  <section class="view" id="v-dps">
+    <div class="toolbar">
+      <label>Framework <select id="dpfw"></select></label>
+      <span class="pcount" id="dpcount"></span>
+    </div>
+    <div id="dpsbody"></div>
+  </section>
+
+  <section class="view" id="v-banks">
+    <div class="toolbar">
+      <label>Bank return <select id="banksel"></select></label>
+      <span class="pcount" id="bankmeta"></span>
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);margin:2px 0 10px">
+      The <b>value</b> side: a submitted return. Each reported figure is traced through its datapoint definition to the regulation provision that requires it — value → datapoint → law.</p>
+    <div id="banksbody"></div>
+  </section>
+
+  <section class="view" id="v-overview">
+    <h3 class="sec" style="margin-top:6px">How different banks reported each datapoint</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">
+      The supervisory pay-off: because each datapoint is defined once, the same figure is comparable across institutions — and every row stays anchored to the provision that requires it.</p>
+    <div id="overviewbody"></div>
+  </section>
+</div>
+<footer id="foot"></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const DATA = __DATA__;
+const REGS = __REGS__;
+const DPDOCS = __DPDOCS__;
+const BANKS = __BANKS__;
+const DP_BY_CODE = Object.fromEntries(DATA.datapoints.map(dp=>[dp.code,dp]));
+const FRAMEWORKS = [...new Set(DATA.datapoints.map(dp=>dp.framework||'Other'))].sort();
+function fillFwSelect(id){
+  const sel=document.getElementById(id); if(!sel||sel.dataset.filled) return;
+  sel.innerHTML=`<option value="">all frameworks</option>`+
+    FRAMEWORKS.map(f=>`<option value="${f}">${f}</option>`).join('');
+  sel.dataset.filled='1';
+}
+const decisions = {};
+const bandColor = {high:'var(--high)',medium:'var(--med)',low:'var(--low)'};
+
+document.getElementById('foot').textContent =
+  'Indexed ' + DATA.paragraphs_indexed.toLocaleString() + ' paragraphs across ' + DATA.documents_indexed +
+  ' regulations · lexical TF-IDF matcher · illustrative DPM datapoints. Every link keeps quoted legal text for audit.';
+
+function ensure(code){ if(!decisions[code]) decisions[code]={status:'undecided',chosen:-1,rejected:new Set()}; return decisions[code]; }
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+function esc(s){ return (s??'').toString().replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function effective(dp){
+  const d=ensure(dp.code);
+  if(d.status==='none') return {status:'none',cand:null};
+  if(d.status==='accepted'&&d.chosen>=0) return {status:'accepted',cand:dp.candidates[d.chosen]};
+  return {status:'proposed',cand:dp.candidates[0]||null};
+}
+
+/* tabs */
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  const v=b.dataset.view;
+  [['review','v-review'],['register','v-register'],['regs','v-regs'],['dps','v-dps'],
+   ['banks','v-banks'],['overview','v-overview']]
+    .forEach(([k,id])=>document.getElementById(id).classList.toggle('on',k===v));
+  if(v==='register') renderRegister();
+  if(v==='regs') renderRegBody();
+  if(v==='dps') renderDps();
+  if(v==='banks') renderBanks();
+  if(v==='overview') renderOverview();
+});
+
+/* ---------- review ---------- */
+function render(){
+  const filter=document.getElementById('filter').value;
+  const list=document.getElementById('list'); list.innerHTML='';
+  let done=0;
+  DATA.datapoints.forEach(dp=>{
+    const d=ensure(dp.code);
+    if(d.status!=='undecided') done++;
+    if(filter!=='all' && filter!==d.status) return;
+    list.appendChild(cardEl(dp,d));
+  });
+  const total=DATA.datapoints.length;
+  document.getElementById('pcount').textContent=done+' / '+total+' reviewed';
+  document.getElementById('pbar').style.width=(total?done/total*100:0)+'%';
+}
+function metaChips(dp){
+  let h=`<span class="mchip"><b>Metric</b> ${esc(dp.metric.data_type)} · ${esc(dp.metric.period)}</span>`;
+  h+=`<span class="mchip"><b>Cell</b> ${esc(dp.cell)}</span>`;
+  (dp.dimensions||[]).forEach(x=>h+=`<span class="mchip"><b>${esc(x.dim)}</b> = ${esc(x.member)}</span>`);
+  return h;
+}
+function cardEl(dp,d){
+  const card=document.createElement('div');
+  card.className='card'+(d.status==='accepted'?' done':'')+(d.status==='none'?' skip':'');
+  const statusTxt={undecided:'Undecided',accepted:'Confirmed',none:'No match'}[d.status];
+  card.innerHTML=`
+    <div class="dp-head"><span class="code">${esc(dp.code)}</span>
+      <span class="dp-name">${esc(dp.name)}</span>
+      <span class="status-pill ${d.status}">${statusTxt}</span></div>
+    <div class="meta">${metaChips(dp)}</div>
+    <div class="dp-note">${esc(dp.note||'')}</div>
+    <div class="cands"></div>
+    <div class="dp-foot"><button class="link-none">${d.status==='none'?'↩ undo “no correct match”':'Mark “no correct match”'}</button></div>`;
+  const cc=card.querySelector('.cands');
+  dp.candidates.forEach((c,i)=>cc.appendChild(candEl(dp,d,c,i)));
+  card.querySelector('.link-none').onclick=()=>{ d.status=d.status==='none'?'undecided':'none'; d.chosen=-1; render(); };
+  return card;
+}
+function candEl(dp,d,c,i){
+  const el=document.createElement('div');
+  const chosen=d.status==='accepted'&&d.chosen===i, rejected=d.rejected.has(i);
+  el.className='cand'+(chosen?' chosen':'')+(rejected?' rejected':'');
+  el.innerHTML=`
+    <div class="cand-top"><div class="conf">
+        <div class="bar"><i style="width:${c.confidence}%;background:${bandColor[c.band]}"></i></div>
+        <b>${c.confidence}%</b><span class="pill ${c.band}">${c.band}</span></div>
+      <span class="cite" title="Copy citation">${esc(c.label)} · p.${c.page}</span>
+      <span class="doc">${esc(c.doc_title)}</span></div>
+    ${c.breadcrumb?`<div class="crumb">${esc(c.breadcrumb)}</div>`:''}
+    <div class="evi">${esc(c.evidence)}</div>
+    <div class="cand-actions">
+      <button class="btn-accept${chosen?' on':''}">${chosen?'✓ Confirmed':'Confirm link'}</button>
+      <button class="btn-reject${rejected?' on':''}">Reject</button></div>`;
+  el.querySelector('.cite').onclick=()=>{ navigator.clipboard?.writeText(`${c.label} (p.${c.page}) — ${c.doc}`); toast('Citation copied'); };
+  el.querySelector('.btn-accept').onclick=()=>{ if(chosen){d.status='undecided';d.chosen=-1;} else {d.status='accepted';d.chosen=i;d.rejected.delete(i);} render(); };
+  el.querySelector('.btn-reject').onclick=()=>{ if(rejected)d.rejected.delete(i); else {d.rejected.add(i); if(d.chosen===i){d.chosen=-1;d.status='undecided';}} render(); };
+  return el;
+}
+
+/* ---------- supervisor register ---------- */
+function renderRegister(){
+  fillFwSelect('regfw');
+  const fw=document.getElementById('regfw');
+  fw.onchange=renderRegister;
+  const sel=fw.value;
+  const rows=DATA.datapoints.filter(dp=>!sel||dp.framework===sel).map(dp=>({dp,...effective(dp)}));
+  const nConf=rows.filter(r=>r.status==='accepted').length;
+  const nProp=rows.filter(r=>r.status==='proposed').length;
+  const nNone=rows.filter(r=>r.status==='none').length;
+  const confVals=rows.filter(r=>r.status==='accepted'&&r.cand).map(r=>r.cand.confidence);
+  const avg=confVals.length?Math.round(confVals.reduce((a,b)=>a+b,0)/confVals.length):0;
+  const regs=new Set(rows.filter(r=>r.cand&&r.status!=='none').map(r=>r.cand.doc));
+  document.getElementById('kpis').innerHTML=[
+    ['Datapoints',rows.length],['Confirmed',nConf],['Proposed (unreviewed)',nProp],
+    ['No match',nNone],['Avg confidence (confirmed)',avg+'%'],['Regulations covered',regs.size]
+  ].map(([l,v])=>`<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
+  let t=`<table><thead><tr><th>Datapoint</th><th>Template cell</th><th>Regulation</th>
+    <th>Provision</th><th>Conf.</th><th>Status</th></tr></thead><tbody>`;
+  rows.forEach(({dp,status,cand})=>{
+    const prov = status==='none' ? '<span style="color:var(--muted)">— no match —</span>'
+      : cand ? `<span class="mono">${esc(cand.label)} · p.${cand.page}</span>` : '—';
+    const conf=(status!=='none'&&cand)?cand.confidence+'%':'—';
+    const doc=(status!=='none'&&cand)?esc(cand.doc):'—';
+    t+=`<tr><td><span class="code">${esc(dp.code)}</span>
+        <span class="mchip" style="font-size:11px">${esc(dp.framework||'Other')}</span><br>${esc(dp.name)}</td>
+      <td class="mono">${esc(dp.cell)}</td><td>${doc}</td><td>${prov}</td><td>${conf}</td>
+      <td><span class="tag ${status}">${status}</span></td></tr>`;
+  });
+  document.getElementById('regtable').innerHTML=t+'</tbody></table>';
+  const byReg={};
+  rows.forEach(({dp,status,cand})=>{ if(status==='none'||!cand) return;
+    (byReg[cand.doc] ??= {title:cand.doc_title,items:[]}).items.push({dp,status,cand}); });
+  const groups=Object.entries(byReg).sort((a,b)=>b[1].items.length-a[1].items.length);
+  document.getElementById('byreg').innerHTML = groups.map(([doc,g])=>`
+    <div class="reg-group"><h4>${esc(g.title)}</h4>
+      <div class="rc">${g.items.length} datapoint(s) mapped here</div>
+      ${g.items.map(({dp,status,cand})=>`<div class="reg-item">
+        <span class="mono">${esc(dp.cell)}</span><span style="flex:1">${esc(dp.name)}</span>
+        <span class="mono">${esc(cand.label)} · p.${cand.page}</span>
+        <span class="tag ${status}">${status}</span></div>`).join('')}</div>`).join('')
+    || '<p style="color:var(--muted)">No mappings yet.</p>';
+}
+
+/* ---------- regulations browser ---------- */
+let regInit=false;
+function initRegs(){
+  const sel=document.getElementById('regsel');
+  sel.innerHTML=REGS.map((r,i)=>`<option value="${i}">${esc(r.title)}</option>`).join('');
+  sel.onchange=renderRegBody;
+  document.getElementById('regfilter').oninput=renderRegBody;
+  regInit=true;
+}
+function renderRegBody(){
+  if(!regInit) initRegs();
+  const r=REGS[+document.getElementById('regsel').value||0];
+  const q=(document.getElementById('regfilter').value||'').toLowerCase();
+  document.getElementById('regmeta').textContent=
+    `${r.filename} · ${r.paragraphs.toLocaleString()} paragraphs · ${r.pages||'?'} pages`;
+  const items=r.leaves.filter(l=> !q || (l.text+' '+l.label+' '+l.crumb).toLowerCase().includes(q));
+  document.getElementById('regcount').textContent=`${items.length} of ${r.leaves.length} shown`;
+  const MAX=1200;
+  const body=document.getElementById('regbody');
+  body.innerHTML=items.slice(0,MAX).map(l=>`
+    <div class="leaf">
+      <div class="leaf-top"><span class="cite">${esc(l.label)}</span>
+        <span class="page-badge">p.${l.page}</span></div>
+      ${l.crumb?`<div class="crumb">${esc(l.crumb)}</div>`:''}
+      <div class="ptext">${esc(l.text)}</div>
+    </div>`).join('') +
+    (items.length>MAX?`<p style="color:var(--muted)">Showing first ${MAX}. Refine the filter to see more.</p>`:'');
+}
+
+/* ---------- datapoints document viewer ---------- */
+function renderDps(){
+  fillFwSelect('dpfw');
+  const fwsel=document.getElementById('dpfw'); fwsel.onchange=renderDps;
+  const fw=fwsel.value;
+  const body=document.getElementById('dpsbody');
+  if(!DPDOCS.length){ body.innerHTML='<p>No datapoints document ingested.</p>'; return; }
+  let shown=0, total=0;
+  body.innerHTML=DPDOCS.map(doc=>{
+    const dps=doc.datapoints.filter(dp=>!fw||(dp.framework||'Other')===fw);
+    total+=doc.datapoints.length; shown+=dps.length;
+    const rows=dps.map(dp=>{
+      const dims=(dp.dimensions||[]).map(x=>`<span class="mchip"><b>${esc(x.dim)}</b> = ${esc(x.member)}</span>`).join(' ');
+      const cell=`${esc(dp.table_coordinate.table)} · ${esc(dp.table_coordinate.cell)}`;
+      const ref=dp.legal_reference?esc(dp.legal_reference):'<span style="color:var(--muted)">— to be mapped —</span>';
+      return `<tr><td class="mono">${cell}</td>
+        <td><span class="mchip" style="font-size:11px">${esc(dp.framework||'Other')}</span></td>
+        <td><b>${esc(dp.name)}</b><br>
+        <span style="font-size:12px;color:var(--muted)">${esc(dp.definition||'')}</span></td>
+        <td>${esc(dp.metric.data_type)}<br><span style="font-size:12px;color:var(--muted)">${esc(dp.metric.period)}</span></td>
+        <td><div class="dimchips">${dims}</div></td><td>${ref}</td></tr>`;
+    }).join('');
+    return `<div class="card">
+      <div class="dp-head"><span class="dp-name">${esc(doc.filename)}</span>
+        <span class="status-pill accepted">${doc.datapoints.length} datapoints</span></div>
+      <div class="docmeta">${esc(doc.framework)} · taxonomy ${esc(doc.taxonomy_version)}</div>
+      <table><thead><tr><th>Cell</th><th>Framework</th><th>Datapoint</th><th>Metric</th><th>Dimensions → members</th><th>Legal reference</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">The <b>Legal reference</b> column is what the mapping tool fills — confirmed links in the register populate it.</p>
+    </div>`;
+  }).join('');
+  document.getElementById('dpcount').textContent =
+    (fw ? shown + ' of ' + total : total + ' datapoints') + ' · ' + FRAMEWORKS.length + ' frameworks';
+}
+
+/* ---------- bank returns (value -> datapoint -> law) ---------- */
+let banksInit=false;
+function fmtVal(v,unit){
+  if(unit==='EUR'){ const n=Number(v); if(!isNaN(n)) return n.toLocaleString('en-US')+' EUR'; }
+  if(unit==='%') return v+' %';
+  return v;
+}
+function initBanks(){
+  const sel=document.getElementById('banksel');
+  if(!BANKS.length){ return; }
+  sel.innerHTML=BANKS.map((b,i)=>`<option value="${i}">${esc(b.name)}</option>`).join('');
+  sel.onchange=renderBanks;
+  banksInit=true;
+}
+function renderBanks(){
+  if(!banksInit) initBanks();
+  const body=document.getElementById('banksbody');
+  if(!BANKS.length){ body.innerHTML='<p>No bank returns ingested.</p>'; return; }
+  const b=BANKS[+document.getElementById('banksel').value||0];
+  document.getElementById('bankmeta').textContent=`${b.filename} · LEI ${b.lei} · reporting date ${b.date}`;
+  let t=`<table><thead><tr><th>Template cell</th><th>Datapoint</th><th>Reported value</th>
+    <th>Legal basis (regulation → provision)</th><th>Basis</th></tr></thead><tbody>`;
+  Object.entries(b.values).forEach(([code,cell])=>{
+    const dp=DP_BY_CODE[code];
+    const name=dp?dp.name:code;
+    let basis='<span style="color:var(--muted)">— datapoint not in dictionary —</span>', tag='';
+    if(dp){
+      const {status,cand}=effective(dp);
+      if(status==='none'||!cand){ basis='<span style="color:var(--muted)">— no match —</span>'; tag=`<span class="tag none">none</span>`; }
+      else { basis=`<span class="doc">${esc(cand.doc)}</span><br><span class="mono">${esc(cand.label)} · p.${cand.page}</span>`;
+             tag=`<span class="tag ${status}">${status}</span>`; }
+    }
+    t+=`<tr><td class="mono">${esc(code)}</td><td><b>${esc(name)}</b></td>
+      <td class="mono" style="font-size:13px">${esc(fmtVal(cell.value,cell.unit))}</td>
+      <td>${basis}</td><td>${tag}</td></tr>`;
+  });
+  body.innerHTML=t+'</tbody></table>'+
+    '<p style="font-size:12px;color:var(--muted);margin-top:8px">Confirm links in the Review tab to promote a basis from <b>proposed</b> to <b>confirmed</b> — the change flows straight through to this traceability view.</p>';
+}
+
+/* ---------- cross-bank overview ---------- */
+function renderOverview(){
+  const body=document.getElementById('overviewbody');
+  if(!BANKS.length){ body.innerHTML='<p>No bank returns ingested.</p>'; return; }
+  const head=`<tr><th>Datapoint</th><th>Legal basis</th>`+
+    BANKS.map(b=>`<th style="text-align:right">${esc(b.name)}<br>
+      <span style="font-weight:400;color:var(--muted);font-size:11px">${esc(b.date)}</span></th>`).join('')+`</tr>`;
+  let rows='';
+  DATA.datapoints.forEach(dp=>{
+    const {status,cand}=effective(dp);
+    const basis=(status!=='none'&&cand)
+      ? `<span class="doc">${esc(cand.doc)}</span><br><span class="mono">${esc(cand.label)} · p.${cand.page}</span> <span class="tag ${status}">${status}</span>`
+      : '<span style="color:var(--muted)">— no match —</span>';
+    const cells=BANKS.map(b=>{ const v=b.values[dp.code];
+      return `<td class="mono" style="font-size:12.5px;text-align:right">${v?esc(fmtVal(v.value,v.unit)):'<span style=\"color:var(--muted)\">—</span>'}</td>`;
+    }).join('');
+    rows+=`<tr><td><span class="mono" style="font-size:11px;color:var(--navy)">${esc(dp.cell)}</span><br>${esc(dp.name)}</td>
+      <td>${basis}</td>${cells}</tr>`;
+  });
+  body.innerHTML=`<table><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ---------- exports ---------- */
+document.getElementById('filter').onchange=render;
+document.getElementById('export').onclick=()=>{
+  const out=DATA.datapoints.map(dp=>{ const d=ensure(dp.code); const c=d.chosen>=0?dp.candidates[d.chosen]:null;
+    return {code:dp.code,name:dp.name,cell:dp.cell,decision:d.status,
+      mapped_to:c?{doc:c.doc,label:c.label,page:c.page,confidence:c.confidence}:null,
+      rejected:[...d.rejected].map(i=>({label:dp.candidates[i].label,doc:dp.candidates[i].doc}))}; });
+  download('mapping_decisions.json', JSON.stringify({reviewed_at:new Date().toISOString(),decisions:out},null,2),'application/json');
+  toast('Exported mapping_decisions.json');
+};
+document.getElementById('csv').onclick=()=>{
+  const q=s=>`"${(s??'').toString().replace(/"/g,'""')}"`;
+  const head=['datapoint_code','datapoint_name','template_cell','status','regulation','provision','page','confidence'];
+  const lines=[head.join(',')];
+  DATA.datapoints.forEach(dp=>{ const {status,cand}=effective(dp);
+    lines.push([dp.code,dp.name,dp.cell,status, cand&&status!=='none'?cand.doc:'',
+      cand&&status!=='none'?cand.label:'', cand&&status!=='none'?cand.page:'',
+      cand&&status!=='none'?cand.confidence:''].map(q).join(',')); });
+  download('mapping_register.csv', lines.join('\n'),'text/csv'); toast('Exported mapping_register.csv');
+};
+function download(name,content,type){ const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); }
+
+render();
+renderRegBody();  // Regulations is the default (first) tab
+</script>
+</body>
+</html>
+"""
+
+html = (TEMPLATE
+        .replace("__DATA__", json.dumps(data, ensure_ascii=False))
+        .replace("__REGS__", json.dumps(regs, ensure_ascii=False))
+        .replace("__DPDOCS__", json.dumps(dpdocs, ensure_ascii=False))
+        .replace("__BANKS__", json.dumps(banks, ensure_ascii=False)))
+with open(os.path.join(HERE, "review.html"), "w", encoding="utf-8") as f:
+    f.write(html)
+print("Wrote review.html (%.1f KB) · %d regulations · %d datapoint docs · %d bank returns"
+      % (len(html) / 1024, len(regs), len(dpdocs), len(banks)))

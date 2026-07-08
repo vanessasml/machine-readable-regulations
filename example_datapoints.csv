@@ -1,0 +1,12 @@
+datapoint_id,framework,table,row,col,metric,data_type,period,dim_1,member_1,dim_2,member_2,legal_reference
+J 05.00 r0010 c0010,IRRBB,J 05.00,0010,0010,Change in economic value of equity (ΔEVE),Monetary,Instant,Main category,Economic value of equity,Scenario,Supervisory shock scenario,
+J 06.00 r0010 c0010,IRRBB,J 06.00,0010,0010,Net interest income sensitivity,Monetary,Duration,Main category,Net interest income,Time horizon,12 months,
+J 07.00 r0020 c0010,IRRBB,J 07.00,0020,0010,Supervisory outlier test – decline vs Tier 1,Percentage,Instant,Main category,Economic value of equity decline,Reference amount,Tier 1 capital,
+F 18.00 r0070 c0010,FINREP,F 18.00,0070,0010,Non-performing exposures – gross carrying amount,Monetary,Instant,Credit quality,Non-performing,Valuation,Gross carrying amount,
+F 19.00 r0080 c0010,FINREP,F 19.00,0080,0010,Forborne exposures – forbearance measures,Monetary,Instant,Credit quality,Exposures with forbearance measures,Valuation,Gross carrying amount,
+OUT 01.00 r0010 c0050,Outsourcing,OUT 01.00,0010,0050,Outsourcing register – critical or important function,Boolean,Instant,Function type,Critical or important function,Provider,Cloud service provider,
+ICAAP 02.00 r0030 c0010,ICAAP / SREP,ICAAP 02.00,0030,0010,ICAAP internal capital,Monetary,Instant,Capital concept,Total internal capital,Purpose,ICAAP,
+F 12.01 r0010 c0010,FINREP,F 12.01,0010,0010,Expected credit loss allowance (IFRS 9),Monetary,Instant,Allowance type,Allowances for expected credit losses,Stage,Stage 2 lifetime ECL,
+REC 01.00 r0010 c0010,Recovery planning,REC 01.00,0010,0010,Recovery plan indicator – CET1 ratio,Percentage,Instant,Indicator category,Capital,Measure,Common Equity Tier 1 ratio,
+INC 01.00 r0010 c0010,PSD2 incident reporting,INC 01.00,0010,0010,Major operational or security incident (PSD2),Boolean,Instant,Incident class,Major operational or security incident,Reporter,Payment service provider,
+HE 01.00 r0010 c0010,Remuneration (high earners),HE 01.00,0010,0010,High earners – count in EUR 1–5m band,Integer,Duration,Remuneration band,EUR 1 000 000 to 5 000 000,Population,High earners,
