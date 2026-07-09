@@ -77,9 +77,26 @@ python match.py                          # -> matches.json
 # 3. (optional) regenerate the sample datapoints file
 python gen_datapoints_file.py            # -> example_datapoints.csv / .json
 
-# 4. Build the app
-python build_ui.py                       # -> review.html
+# 4. Extract machine-readable rules → rules.json
+python extract_rules.py                  # starter rulebook (no dependencies)
+python extract_rules.py --live           # real LLM extraction: needs regulation JSONs,
+                                         #   `pip install anthropic`, and credentials
+                                         #   (ANTHROPIC_API_KEY or `ant auth login`)
+
+# 5. Apply rules from the terminal (optional check)
+python rules_engine.py --all             # verdicts per bank, with cited provisions
+
+# 6. Build the app
+python build_ui.py                       # -> review.html (Home + 8-tab Workflow)
 ```
+
+The rules side completes the flow: **⑧ Verdicts** applies the rules a human approved
+in **④ Rules** to each bank return — the engine produces evidence (pass/fail with the
+substituted values and the provision each rule cites); approving or rejecting the
+return itself stays with the supervisor. Rules are extracted as `pending` and are
+never applied until approved. Starter rules inherit their legal source from the
+mapping engine's top candidate for the datapoint they bind — the Map is the bridge.
+The UI template lives in `ui/template.html`; `build_ui.py` only injects the data.
 
 Then open `review.html` in any browser — it is fully self-contained (data inlined, no
 external requests, no server needed).
