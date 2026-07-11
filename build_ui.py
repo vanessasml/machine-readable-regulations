@@ -74,9 +74,17 @@ def load_banks():
     return banks
 
 
+def load_rules_doc():
+    p = os.path.join(HERE, "rules.json")
+    if os.path.exists(p):
+        return json.load(open(p, encoding="utf-8"))
+    return {"meta": {}, "rules": []}
+
+
 regs = load_regs()
 dpdocs = load_dpdocs()
 banks = load_banks()
+rules_doc = load_rules_doc()
 
 TEMPLATE = open(os.path.join(HERE, "ui", "template.html"), encoding="utf-8").read()
 
@@ -84,8 +92,9 @@ html = (TEMPLATE
         .replace("__DATA__", json.dumps(data, ensure_ascii=False))
         .replace("__REGS__", json.dumps(regs, ensure_ascii=False))
         .replace("__DPDOCS__", json.dumps(dpdocs, ensure_ascii=False))
-        .replace("__BANKS__", json.dumps(banks, ensure_ascii=False)))
+        .replace("__BANKS__", json.dumps(banks, ensure_ascii=False))
+        .replace("__RULES__", json.dumps(rules_doc, ensure_ascii=False)))
 with open(os.path.join(HERE, "review.html"), "w", encoding="utf-8") as f:
     f.write(html)
-print("Wrote review.html (%.1f KB) · %d regulations · %d datapoint docs · %d bank returns"
-      % (len(html) / 1024, len(regs), len(dpdocs), len(banks)))
+print("Wrote review.html (%.1f KB) · %d regulations · %d datapoint docs · %d bank returns · %d rules"
+      % (len(html) / 1024, len(regs), len(dpdocs), len(banks), len(rules_doc.get("rules", []))))

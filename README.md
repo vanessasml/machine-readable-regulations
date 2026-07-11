@@ -1,7 +1,8 @@
-# reg-datapoint-mapper — Datapoint → Regulation mapping
+# reg-datapoint-mapper — machine-readable regulations, end to end
 
-A working proof of concept for the pilot: it links reporting **datapoints** to the exact
-regulatory **paragraphs** that define them.
+A working proof of concept for the pilot: from the **regulation text** to a **supervisor's
+decision** on a bank's return, with every step machine-readable and every consequential
+step approved by a human.
 
 It is a **standalone consumer** of the [`regulation-parser`](https://github.com/vanessasml/eba-regulations-parser)
 package: the parser is pulled from GitHub as a dependency (see `pyproject.toml`) and called
@@ -9,48 +10,61 @@ in one place — `ingest.py` — to turn regulation PDFs into citation-anchored 
 of the app never imports the parser; it works off that JSON. Swapping the parser version is
 a dependency bump, nothing else.
 
-## What it does
+## The approach
 
-1. **Ingests** regulation PDFs via `regparser.parse_pdf` (`ingest.py`), producing one JSON
-   per document with every citable paragraph's legal label, breadcrumb and page span.
-2. **Matches** a set of DPM-style datapoints to the most relevant paragraphs with a
-   lexical TF-IDF + cosine engine, returning the top 3 candidates each, a confidence
-   score, and the **quoted legal text as evidence**.
-The `review.html` app has six tabs, grouped to read as a flow — **inputs → engine → what
-it unlocks**:
+One regulation is currently re-interpreted by hand three times: authorities derive
+validation rules from the text, every bank re-encodes its own reading of the reporting
+templates, and supervisors reconcile the results. This pilot makes that chain
+machine-readable. The schema below is the app's Home page and the team's shared mental
+model — 🙂 marks a **human in the loop**:
 
-**Inputs**
+```mermaid
+flowchart TB
+    L["Lawyers · legislators<br/>Regulations — natural-language legal text<br/>(tab ①)"]
+    R["Rules — each obligation as a checkable formula,<br/>quoting its provision (tab ④)"]
+    A["Accountants<br/>Datapoint templates, one per framework<br/>(tab ②)"]
+    M["Map — rule variables → datapoints,<br/>datapoints → defining provisions (tab ③)"]
+    S["Bank submission files —<br/>values per datapoint (tabs ⑥ ⑦)"]
+    AP["Apply rules on detected datapoints —<br/>substitute each variable with the bank's value (tab ⑧)"]
+    V{"Supervisor decision:<br/>Approved / Not approved"}
+    L -->|"🙂 machine drafts, human reviews"| R
+    R --> M
+    A --> M
+    A -->|"bank fills out"| S
+    M --> AP
+    S --> AP
+    AP -->|"🙂 supervisor reviews the mapping and every verdict"| V
+```
 
-3. **Regulations** (tab ①) — browse all 21 ingested regulations; pick a document and read
-   its paragraphs with citation labels, breadcrumbs and page numbers, with an in-document
-   text filter.
-4. **Datapoints** (tab ②) — the ingested datapoints document as a table: each datapoint's
-   cell, **framework**, metric, dimensions→members, and the (initially empty) legal
-   reference. The template/definition side — no values. A **framework filter** (IRRBB,
-   FINREP, Outsourcing, …) shows the tool spans many templates, not one.
+Two principles carry the whole design:
 
-**Engine**
+- **Probabilistic components only draft or triage.** The LLM proposes rules and the
+  matcher proposes mappings; both land as *pending* and nothing touches a bank return
+  until a human approves it. The engine that applies approved rules is deterministic —
+  same input, same verdict, and every check cites the provision behind it.
+- **The final decision is the supervisor's.** The engine produces evidence
+  (pass / fail / attention, with substituted values and citations); approving or
+  rejecting the return itself is a human act, recorded and exportable.
 
-5. **Regulation → Datapoint mapping** (tab ③) — the product. For each datapoint the engine
-   proposes the provisions that define it (confidence + quoted legal text); a reviewer
-   confirms, corrects, or rejects (human-in-the-loop). Exports decisions as JSON.
+## The app
 
-**What it unlocks**
+`review.html` is fully self-contained (data inlined, no external requests, no server).
+It has two pages:
 
-6. **Supervisor register** (tab ④) — the combined traceability view: coverage KPIs, a
-   forward datapoint→provision table (with a **framework filter**), a reverse
-   *by-regulation* index (impact analysis: if a provision changes, which datapoints are
-   affected), and a CSV export.
-7. **Bank returns** (tab ⑤) — two example submitted returns (`bank_returns/*.csv`, with
-   entity LEI, reporting date and figures) traced end to end: each reported value → its
-   datapoint definition → the regulation provision behind it. One definition, many values.
-8. **Banks overview** (tab ⑥) — the supervisory pay-off: a matrix of datapoints × banks
-   showing each institution's reported value side by side, every row still anchored to the
-   provision that defines it. Comparability is the whole point of standardised datapoints.
+**Home** — the problem statement and the schema above, rendered as components.
 
-Datapoints now use the real DPM shape — a **metric**, **dimensions → members**, and a
-**template coordinate** (e.g. `J 05.00 · r0010/c0010`) — so swapping in a real slice of the
-EBA DPM database is a data change, not a code change.
+**Workflow** — eight tabs, grouped to read as a flow **inputs → engine → what it unlocks**:
+
+| Group | Tab | What it shows |
+|---|---|---|
+| Inputs | ① Regulations | Browse ingested regulations; every paragraph with citation label, breadcrumb, page. |
+| Inputs | ② Datapoints | The DPM-style datapoint document: metric, dimensions→members, template coordinate, framework filter. |
+| Engine | ③ Regulation → Datapoint mapping | For each datapoint, the provisions that define it (confidence + quoted text); reviewer confirms / corrects / rejects. Exports decisions. |
+| Engine | ④ Rules | Machine-extracted rules pending approval: formula, variable→datapoint bindings, severity, confidence, quoted source provision. Machine gates (parse, binding, duplicates) block approval of malformed drafts. |
+| Unlocks | ⑤ Supervisor register | Coverage KPIs, forward and reverse (impact-analysis) indices, CSV export. |
+| Unlocks | ⑥ Bank returns | Submitted returns traced value → datapoint → provision. |
+| Unlocks | ⑦ Banks overview | Datapoints × banks matrix — comparability, still anchored to the law. |
+| Unlocks | ⑧ Verdicts | Approved rules applied to each return: pass / fail / attention with substituted values and citations; the supervisor approves or rejects the return and exports the decisions. |
 
 ## Setup
 
@@ -65,6 +79,10 @@ uv sync
 pip install "regulation-parser @ git+https://github.com/vanessasml/eba-regulations-parser.git"
 ```
 
+Only `ingest.py` needs the parser, and only `extract_rules.py --live` needs the
+`anthropic` SDK. Everything else — matcher, rules engine, app build — is pure standard
+library.
+
 ## Run the pipeline
 
 ```bash
@@ -77,12 +95,49 @@ python match.py                          # -> matches.json
 # 3. (optional) regenerate the sample datapoints file
 python gen_datapoints_file.py            # -> example_datapoints.csv / .json
 
-# 4. Build the app
-python build_ui.py                       # -> review.html
+# 4. Extract machine-readable rules → rules.json
+python extract_rules.py                  # starter rulebook (no dependencies)
+python extract_rules.py --live           # real LLM extraction: needs regulation JSONs,
+                                         #   `pip install anthropic`, and credentials
+                                         #   (ANTHROPIC_API_KEY or `ant auth login`)
+
+# 5. Apply rules from the terminal (optional check)
+python rules_engine.py --all             # verdicts per bank, with cited provisions
+
+# 6. Build the app
+python build_ui.py                       # -> review.html (Home + 8-tab Workflow)
 ```
 
-Then open `review.html` in any browser — it is fully self-contained (data inlined, no
-external requests, no server needed).
+Then open `review.html` in any browser.
+
+## Data contracts
+
+**Rules** (`rules.json`) — the rulebook is data; the engine never changes when rules do.
+One comparator per expression; every variable bound to a datapoint; percentages stay in
+percent units (15% → `15`), matching the returns. All extracted rules start `"pending"`.
+
+```json
+{
+  "id": "R-001",
+  "name": "IRRBB supervisory outlier test — early-warning threshold",
+  "expr": "sot_decline_vs_tier1 <= 15",
+  "severity": "warning",
+  "confidence": 0.95,
+  "bindings": { "sot_decline_vs_tier1": "J 07.00 r0020 c0010" },
+  "source": { "doc": "EBA_GL_2018_02", "label": "Paragraph 19", "page": 8,
+              "quote": "… If the decline in economic value is greater than 15% of Tier 1, the institution should inform the competent authority.",
+              "via": "inherited from datapoint mapping (top candidate)" },
+  "status": "pending",
+  "origin": "starter"
+}
+```
+
+Starter rules inherit their legal source from the mapping engine's top candidate for the
+datapoint they bind — the Map is the bridge between the rule side and the provision side.
+
+**Bank returns** (`bank_returns/*.csv`) — `entity_name, entity_lei, reference_date,
+datapoint_id, value, unit`. Units: `EUR`, `%` (values in percent), `Y/N` (Yes/No → 1/0),
+`count`.
 
 ## Files
 
@@ -91,18 +146,25 @@ external requests, no server needed).
 | `pyproject.toml` | Declares the `regulation-parser` GitHub dependency. |
 | `ingest.py` | **Integration boundary** — calls `regparser.parse_pdf` to produce `data/regulations/*.json`. |
 | `match.py` | Datapoints + TF-IDF matcher over the ingested regulation JSON. Edit `DATAPOINTS` to add your own. |
+| `extract_rules.py` | Rules from regulation text: `--live` LLM extraction with machine gates (parse / bindings / duplicates), default hand-curated starter set. → `rules.json` |
+| `rules_engine.py` | Deterministic engine: applies rules to bank returns; CLI for terminal verdicts. |
 | `gen_datapoints_file.py` | Emits the sample `example_datapoints.csv / .json`. |
-| `build_ui.py` | Embeds everything into the review app. |
 | `bank_returns/*.csv` | Two example filled bank returns (the value side). |
 | `data/regulations/` | Ingested regulation JSON (git-ignored; regenerate with `ingest.py`). |
-| `review.html` | The interactive six-tab app. |
+| `ui/template.html` | The app's HTML/CSS/JS — edit the UI here. |
+| `build_ui.py` | Thin packer: injects the JSON artifacts into the template. → `review.html` |
+| `review.html` | The self-contained two-page app. |
 
 ## How this maps to production
 
-This prototype deliberately keeps the two hard parts *out* of scope, exactly as the pilot
-proposes. The datapoints here are an illustrative sample — in production they come from the
-**EBA DPM dictionary**. The matcher is lexical only; a production version adds an **LLM
-re-ranker** on the shortlist for semantic precision. What is already real and reusable: the
-extracted, citation-anchored regulation text, the candidate-plus-evidence structure, the
-confidence banding, and the human-in-the-loop review + export workflow. Every proposed link
-carries the quoted source provision, so nothing is a black box.
+This prototype deliberately keeps the hard parts honest. The datapoints are an
+illustrative sample — in production they come from the **EBA DPM dictionary**. The
+matcher is lexical only; a production version adds an **LLM re-ranker** on the shortlist
+for semantic precision (this would sharpen both the mapping tab and the rule citations it
+feeds, since rules inherit their sources through the Map). The starter rulebook is
+hand-curated; `--live` extraction runs the real model but its output is still gated and
+reviewed. What is already real and reusable: the extracted, citation-anchored regulation
+text, the candidate-plus-evidence structure, the confidence banding, the deterministic
+rules engine, and the human-in-the-loop review + export workflow at both review points —
+the rules a bank is checked against, and the decision on the bank itself. Every proposed
+link and every verdict carries the quoted source provision, so nothing is a black box.

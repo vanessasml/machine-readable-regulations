@@ -1,0 +1,171 @@
+{
+  "meta": {
+    "origin": "starter",
+    "generated_at": "2026-07-09",
+    "model": null,
+    "note": "Hand-curated starter rulebook over the sample datapoints; sources inherited from the mapping engine's top candidates. Replace/extend with `extract_rules.py --live` once regulation JSONs and Anthropic credentials are available. All rules start as 'pending' — nothing applies until approved in review.html."
+  },
+  "rules": [
+    {
+      "id": "R-001",
+      "name": "IRRBB supervisory outlier test — early-warning threshold",
+      "expr": "sot_decline_vs_tier1 <= 15",
+      "severity": "warning",
+      "confidence": 0.95,
+      "bindings": {
+        "sot_decline_vs_tier1": "J 07.00 r0020 c0010"
+      },
+      "note": "Decline in economic value of equity above 15% of Tier 1 must be notified to the competent authority (EBA/GL/2018/02).",
+      "source": {
+        "doc": "EBA_GL_2018_02",
+        "doc_title": "GL on management of interest rate risk (IRRBB), EBA/GL/2018/02",
+        "label": "Paragraph 19",
+        "page": 8,
+        "quote": "19. The second threshold originates from the BCBS Standards. The institutions are expected to calculate the impact of six predefined shock scenarios on their own funds. If the decline in economic value is greater than 15% of Tier 1, the institution should inform the competent authority.",
+        "via": "inherited from datapoint mapping (top candidate)"
+      },
+      "status": "pending",
+      "origin": "starter",
+      "unbound": [],
+      "unknown_datapoints": []
+    },
+    {
+      "id": "R-002",
+      "name": "Recovery CET1 indicator above regulatory minimum",
+      "expr": "recovery_cet1_ratio >= 4.5",
+      "severity": "blocking",
+      "confidence": 0.85,
+      "bindings": {
+        "recovery_cet1_ratio": "REC 01.00 r0010 c0010"
+      },
+      "note": "Recovery-plan capital indicators are calibrated above the CRR Art. 92(1)(a) 4.5% CET1 minimum (EBA/GL/2015/02).",
+      "source": {
+        "doc": "EBA_CP_2018_01",
+        "doc_title": "CP – Draft GL on NPE and forborne exposures, EBA/CP/2018/01",
+        "label": "Paragraph 52(c)",
+        "page": 25,
+        "quote": "c) Recovery plan21: Where NPE related indicator levels and actions form part of the recovery plan, credit institutions should ensure they are in alignment with the NPE strategy targets and operational plan.",
+        "via": "inherited from datapoint mapping (top candidate)"
+      },
+      "status": "pending",
+      "origin": "starter",
+      "unbound": [],
+      "unknown_datapoints": []
+    },
+    {
+      "id": "R-003",
+      "name": "No open major incident on record",
+      "expr": "major_incident == 0",
+      "severity": "warning",
+      "confidence": 0.7,
+      "bindings": {
+        "major_incident": "INC 01.00 r0010 c0010"
+      },
+      "note": "A classified major incident is not a breach — failing this check routes the supervisor to verify the PSD2 Art. 96 notification file.",
+      "source": {
+        "doc": "EBA_GL_2017_10",
+        "doc_title": "GL on major incident reporting under PSD2, EBA/GL/2017/10",
+        "label": "Paragraph 2.7",
+        "page": 11,
+        "quote": "2.7. Payment service providers should submit an initial report to the competent authority in the home Member State when a major operational or security incident is first detected.",
+        "via": "inherited from datapoint mapping (top candidate)"
+      },
+      "status": "pending",
+      "origin": "starter",
+      "unbound": [],
+      "unknown_datapoints": []
+    },
+    {
+      "id": "R-004",
+      "name": "NPE gross carrying amount non-negative",
+      "expr": "npe_gross >= 0",
+      "severity": "blocking",
+      "confidence": 0.9,
+      "bindings": {
+        "npe_gross": "F 18.00 r0070 c0010"
+      },
+      "note": "Gross carrying amounts cannot be negative.",
+      "source": {
+        "doc": "EBA_CP_2018_01",
+        "doc_title": "CP – Draft GL on NPE and forborne exposures, EBA/CP/2018/01",
+        "label": "Paragraph 21",
+        "page": 8,
+        "quote": "21. The computation of the NPL ratio is defined in the EBA Risk dashboard. For the NPL ratio the gross carrying amount of non-performing loans and advances is divided by the gross carrying amount of total loans and advances subject to NPE definition5.",
+        "via": "inherited from datapoint mapping (top candidate)"
+      },
+      "status": "pending",
+      "origin": "starter",
+      "unbound": [],
+      "unknown_datapoints": []
+    },
+    {
+      "id": "R-005",
+      "name": "Forborne exposures non-negative",
+      "expr": "forborne_gross >= 0",
+      "severity": "blocking",
+      "confidence": 0.9,
+      "bindings": {
+        "forborne_gross": "F 19.00 r0080 c0010"
+      },
+      "note": "Gross carrying amounts cannot be negative.",
+      "source": {
+        "doc": "EBA_CP_2018_01",
+        "doc_title": "CP – Draft GL on NPE and forborne exposures, EBA/CP/2018/01",
+        "label": "Paragraph 258(a)",
+        "page": 65,
+        "quote": "a) have in place a forbearance policy and related processes to assess viability of forbearance measures and monitor efficiency and effectiveness of forbearance measures;",
+        "via": "inherited from datapoint mapping (top candidate)"
+      },
+      "status": "pending",
+      "origin": "starter",
+      "unbound": [],
+      "unknown_datapoints": []
+    },
+    {
+      "id": "R-006",
+      "name": "ECL allowance non-negative",
+      "expr": "ecl_allowance >= 0",
+      "severity": "blocking",
+      "confidence": 0.9,
+      "bindings": {
+        "ecl_allowance": "F 12.01 r0010 c0010"
+      },
+      "note": "Loss allowances are reported as non-negative amounts.",
+      "source": {
+        "doc": "EBA_GL_2018_06",
+        "doc_title": "GL on management of non-performing and forborne exposures, EBA/GL/2018/06",
+        "label": "Paragraph 167",
+        "page": 48,
+        "quote": "167. Credit institutions should estimate loss allowances for NPEs and FBEs subject to impairment in accordance with the EBA Guidelines on credit risk management practices and accounting for expected credit losses.",
+        "via": "inherited from datapoint mapping (top candidate)"
+      },
+      "status": "pending",
+      "origin": "starter",
+      "unbound": [],
+      "unknown_datapoints": []
+    },
+    {
+      "id": "R-007",
+      "name": "High-earner count non-negative",
+      "expr": "high_earners >= 0",
+      "severity": "blocking",
+      "confidence": 0.9,
+      "bindings": {
+        "high_earners": "HE 01.00 r0010 c0010"
+      },
+      "note": "A count of natural persons cannot be negative.",
+      "source": {
+        "doc": "EBA_GL_2022_08",
+        "doc_title": "GL on data collection on high earners, EBA/GL/2022/08",
+        "label": "Row, bullet",
+        "page": 34,
+        "quote": "- Correctness of the selected payment band: For each business area, the sum of the fixed remuneration (row 6) and the variable remuneration (row 12) divided by the number of high earners (row 4) should result in a value that is within the selected payment band.",
+        "via": "inherited from datapoint mapping (top candidate)"
+      },
+      "status": "pending",
+      "origin": "starter",
+      "unbound": [],
+      "unknown_datapoints": []
+    }
+  ]
+}
