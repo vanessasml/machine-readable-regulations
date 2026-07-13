@@ -86,15 +86,30 @@ dpdocs = load_dpdocs()
 banks = load_banks()
 rules_doc = load_rules_doc()
 
-TEMPLATE = open(os.path.join(HERE, "ui", "template.html"), encoding="utf-8").read()
+# Always write the combined payload (consumed by the React app's dev server).
+payload = {"data": data, "regs": regs, "dpdocs": dpdocs, "banks": banks, "rules": rules_doc}
+with open(os.path.join(HERE, "payload.json"), "w", encoding="utf-8") as f:
+    json.dump(payload, f, ensure_ascii=False)
+print("Wrote payload.json")
 
-html = (TEMPLATE
-        .replace("__DATA__", json.dumps(data, ensure_ascii=False))
-        .replace("__REGS__", json.dumps(regs, ensure_ascii=False))
-        .replace("__DPDOCS__", json.dumps(dpdocs, ensure_ascii=False))
-        .replace("__BANKS__", json.dumps(banks, ensure_ascii=False))
-        .replace("__RULES__", json.dumps(rules_doc, ensure_ascii=False)))
+DIST = os.path.join(HERE, "ui-app", "dist", "index.html")
+if os.path.exists(DIST):
+    # Pack the React single-file build: inline the payload for the quoted token.
+    shell = open(DIST, encoding="utf-8").read()
+    blob = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
+    html = shell.replace('"__PAYLOAD__"', blob)
+    source = "ui-app/dist (React build)"
+else:
+    # Legacy fallback: the original vanilla template.
+    TEMPLATE = open(os.path.join(HERE, "ui", "template.html"), encoding="utf-8").read()
+    html = (TEMPLATE
+            .replace("__DATA__", json.dumps(data, ensure_ascii=False))
+            .replace("__REGS__", json.dumps(regs, ensure_ascii=False))
+            .replace("__DPDOCS__", json.dumps(dpdocs, ensure_ascii=False))
+            .replace("__BANKS__", json.dumps(banks, ensure_ascii=False))
+            .replace("__RULES__", json.dumps(rules_doc, ensure_ascii=False)))
+    source = "ui/template.html (legacy)"
 with open(os.path.join(HERE, "review.html"), "w", encoding="utf-8") as f:
     f.write(html)
-print("Wrote review.html (%.1f KB) · %d regulations · %d datapoint docs · %d bank returns · %d rules"
-      % (len(html) / 1024, len(regs), len(dpdocs), len(banks), len(rules_doc.get("rules", []))))
+print("Wrote review.html (%.1f KB, from %s) · %d regulations · %d datapoint docs · %d bank returns · %d rules"
+      % (len(html) / 1024, source, len(regs), len(dpdocs), len(banks), len(rules_doc.get("rules", []))))
