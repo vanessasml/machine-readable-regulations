@@ -1,0 +1,54 @@
+/* RegisterView (tab ⑤) — combined register table + reverse impact index.
+   Uses design tokens only; co-located per the view-author contract. */
+
+.rv-doc {
+  font-size: 12.5px;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.rv-stem {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.rv-name {
+  display: block;
+  margin-top: 3px;
+}
+
+.rv-reg-title {
+  font-size: 14px;
+  color: var(--navy);
+}
+
+.rv-items {
+  margin-top: 8px;
+}
+
+.rv-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.rv-item .mono {
+  font-size: 12px;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.rv-headrow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rv-headrow .ui-sec {
+  margin-right: auto;
+}

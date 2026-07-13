@@ -1,0 +1,390 @@
+/* ============================================================================
+   HomeView — landing page: hero, animated whiteboard flow diagram,
+   principles strip, stats band. All classes prefixed .home- / .fd-.
+   ==========================================================================*/
+
+/* ------------------------------------------------------------------- hero */
+.home-hero {
+  text-align: center;
+  max-width: 880px;
+  margin: 40px auto 10px;
+}
+
+.home-overline {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+/* the thesis — two balanced serif clauses, the human one carried in accent */
+.home-headline {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 5.2vw, 50px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.006em;
+  color: var(--navy);
+  margin: 14px 0 20px;
+  text-wrap: balance;
+}
+.home-headline .hl-a { display: block; }
+.home-headline .hl-b { display: block; color: var(--accent-ink); font-style: italic; }
+
+.home-prob {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 auto 14px;
+  max-width: 60ch;
+}
+.home-prob b { color: var(--navy); font-weight: 600; }
+
+/* the three hand-made translations — scannable fragment chips */
+.home-triple {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px auto 4px;
+}
+.home-triple .tf {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 13px;
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-line);
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  color: var(--muted);
+}
+.home-triple .tf b { color: var(--navy); font-weight: 600; }
+.home-triple .tf i { color: var(--accent); font-style: normal; font-weight: 700; padding: 0 1px; }
+
+.home-cta {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 24px 0 8px;
+}
+.home-cta .ui-btn { padding: 11px 24px; font-size: 14.5px; }
+
+/* --------------------------------------------------------- diagram wrap */
+.fd-wrap {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  padding: 24px 28px 22px;
+  margin: 28px 0 6px;
+}
+
+.fd-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+}
+.fd-caption-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.fd-caption-sub { font-size: var(--fs-sm); color: var(--muted); }
+
+/* ------------------------------------------------------------ flow grid */
+.fd {
+  /* the sanctioned post-it palette (a deliberate design element) */
+  --postit-bg: #fff3ad;
+  --postit-line: #e8d67c;
+  --postit-who: #8a7414;
+  --postit-ttl: #3d3407;
+  --postit-body: #6b5e1c;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr 1fr;
+  gap: 80px 92px;
+  grid-template-areas:
+    "regs   rules   tpl"
+    ".      map     subs"
+    "legend apply   apply"
+    "legend verdict verdict";
+}
+
+.fd-n-regs { grid-area: regs; }
+.fd-n-rules { grid-area: rules; }
+.fd-n-tpl { grid-area: tpl; }
+.fd-n-map { grid-area: map; }
+.fd-n-subs { grid-area: subs; }
+.fd-n-apply { grid-area: apply; justify-self: center; width: min(100%, 400px); }
+
+/* -------- post-it nodes */
+.fd-note {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--postit-bg);
+  border: 1px solid var(--postit-line);
+  border-radius: var(--r-md);
+  padding: 14px 16px 13px;
+  min-height: 132px;
+  box-shadow: 2px 4px 10px rgba(90, 75, 10, 0.14);
+  opacity: 0;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease);
+}
+.fd-note.tilt-l { --tilt: -0.7deg; }
+.fd-note.tilt-r { --tilt: 0.6deg; }
+
+.fd.in .fd-note {
+  opacity: 1;
+  animation: fd-note-in var(--t-slow) var(--ease) backwards;
+}
+.fd.in .fd-note:hover {
+  transform: rotate(0deg);
+  box-shadow: 3px 8px 18px rgba(90, 75, 10, 0.18);
+}
+@keyframes fd-note-in {
+  from { opacity: 0; transform: translateY(14px) rotate(var(--tilt, 0deg)); }
+  to   { opacity: 1; transform: translateY(0) rotate(var(--tilt, 0deg)); }
+}
+
+.fd-note .who {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--postit-who);
+}
+.fd-note .ttl {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16.5px;
+  line-height: 1.25;
+  color: var(--postit-ttl);
+}
+.fd-note .what {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--postit-body);
+}
+.fd-note .rule-ex-chip {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--postit-line);
+  border-radius: var(--r-sm);
+  padding: 3px 8px;
+  margin-top: 3px;
+  color: var(--postit-ttl);
+  white-space: nowrap;
+}
+.fd-note .fd-stat {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--postit-who);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.fd-note .fd-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 9px;
+}
+.fd-tag {
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--navy);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--postit-line);
+  border-radius: var(--r-pill);
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+.fd-tag:hover { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+/* -------- connector layer */
+.fd-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.fd-line {
+  fill: none;
+  stroke: var(--faint);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 650ms var(--ease);
+}
+.fd-head, .fd-dot {
+  fill: var(--faint);
+  opacity: 0;
+  transition: opacity var(--t-med) var(--ease);
+}
+.fd-head.in, .fd-dot.in { opacity: 1; }
+
+/* -------- markers + labels on connectors */
+.fd-mark {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -13px) scale(0.92);
+  transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease);
+}
+.fd-mark.center { transform: translate(-50%, -50%) scale(0.92); }
+.fd-mark.in { opacity: 1; transform: translate(-50%, -13px) scale(1); }
+.fd-mark.center.in { transform: translate(-50%, -50%) scale(1); }
+
+.fd-lbl {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--muted);
+  text-align: center;
+  background: var(--card);
+  border-radius: var(--r-sm);
+  padding: 1px 7px;
+}
+.fd-mark .hitl { animation: fd-pulse 3.2s ease-in-out infinite; }
+@keyframes fd-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* -------- verdict pills */
+.fd-verdict {
+  grid-area: verdict;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 14px;
+  opacity: 0;
+}
+.fd.in .fd-verdict {
+  opacity: 1;
+  animation: fd-rise var(--t-slow) var(--ease) backwards;
+}
+@keyframes fd-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.fd-verdict .v {
+  font-weight: 700;
+  font-size: 14px;
+  padding: 8px 24px;
+  border-radius: var(--r-pill);
+}
+.fd-verdict .v.ok { background: var(--ok-soft); color: var(--ok); border: 1px solid var(--ok-line); }
+.fd-verdict .v.ko { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger-line); }
+
+/* -------- legend (fills the empty bottom-left of the grid on desktop) */
+.fd-legend {
+  grid-area: legend;
+  align-self: end;
+  justify-self: start;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  opacity: 0;
+}
+.fd.in .fd-legend {
+  opacity: 1;
+  animation: fd-rise var(--t-slow) var(--ease) backwards;
+}
+.fd-legend-item { display: flex; align-items: center; gap: 9px; }
+.fd-legend .hitl { width: 21px; height: 21px; font-size: 12px; flex: none; }
+.fd-legend-tagsample {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--navy);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-line);
+  border-radius: var(--r-pill);
+  padding: 2px 10px;
+}
+.fd-legend-arrow { flex: none; display: inline-flex; }
+.fd-legend-arrow line { stroke: var(--faint); stroke-width: 1.7; stroke-linecap: round; }
+.fd-legend-arrow polygon { fill: var(--faint); }
+
+/* --------------------------------------------------------- principles */
+.home-principles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+  margin-top: 10px;
+}
+.home-principle { display: flex; gap: 14px; align-items: flex-start; height: calc(100% - 28px); }
+.home-principle .glyph {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-principle h4 { font-size: 14.5px; color: var(--navy); margin: 0 0 4px; }
+.home-principle p { margin: 0; font-size: var(--fs-sm); line-height: 1.55; color: var(--muted); }
+
+/* -------------------------------------------------------------- stats */
+.home-stats { margin: 20px 0 28px; }
+
+/* -------------------------------------------------------------- mobile */
+@media (max-width: 760px) {
+  .fd {
+    grid-template-columns: 1fr 1fr;
+    gap: 62px 18px;
+    grid-template-areas:
+      "regs    regs"
+      "rules   tpl"
+      "map     subs"
+      "apply   apply"
+      "verdict verdict"
+      "legend  legend";
+  }
+  .fd-n-regs { margin-bottom: 26px; }
+  .fd-verdict { margin-top: 26px; }
+  .fd-legend {
+    justify-self: center;
+    align-self: auto;
+    margin-top: -18px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 16px;
+  }
+  .fd-wrap { padding: 18px 16px 16px; }
+  .fd-note { min-height: 118px; padding: 12px 13px 11px; }
+  .home-principles { grid-template-columns: 1fr; gap: 0; }
+  .home-principle { height: auto; }
+}
