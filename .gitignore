@@ -9,3 +9,5 @@ __pycache__/
 # generated app (rebuild with: python build_ui.py)
 review.html
 .DS_Store
+
+.claude/
