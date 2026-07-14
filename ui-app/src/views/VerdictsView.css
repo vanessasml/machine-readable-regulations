@@ -1,0 +1,20 @@
+/* Tab ⑧ — Verdicts (co-located, vd- prefixed; the .vrow pattern lives in design.css) */
+
+.vd-summary { margin: 10px 0 12px; }
+
+.vd-decision {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.vd-hint {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  margin-right: auto;
+}
+.vd-hint b { color: var(--navy); font-weight: 600; }

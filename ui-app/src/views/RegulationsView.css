@@ -1,0 +1,41 @@
+/* Tab ① — Regulations corpus browser (co-located, rg- prefixed) */
+
+.rg-meta { margin: 4px 2px 12px; }
+
+.rg-leaf {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  margin: 10px 0;
+  box-shadow: var(--shadow-1);
+  transition: border-color var(--t-med) var(--ease);
+}
+.rg-leaf:hover { border-color: var(--line-strong); }
+
+.rg-leaf-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.rg-page,
+.rg-kind {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--chip-bg);
+  border-radius: var(--r-pill);
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.rg-crumb {
+  font-size: var(--fs-xs);
+  color: var(--faint);
+  margin-top: 6px;
+  letter-spacing: 0.01em;
+}
+
+.rg-text {
+  font-size: 13.5px;
+  color: #2a333f;
+  margin: 8px 0 0;
+  max-width: 96ch;
+}

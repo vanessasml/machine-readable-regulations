@@ -1,0 +1,367 @@
+/* ============================================================================
+   PipelineFlow — "Regulation to verdict, in motion".
+   A looping, four-station data-flow: legal text -> machine-readable rules ->
+   a bank's data through a validation gate -> a supervisor's sign-off. Driven
+   entirely by CSS keyframes on one shared 9s master clock (scrubbable, cheap,
+   composited). All motion lives inside @media (prefers-reduced-motion:
+   no-preference); the base styles below ARE the reduced-motion resting frame
+   (a completed run: rules ready, data validated, decision approved).
+   Coordinates live in a fixed 1080x344 design space that PipelineFlow.tsx
+   scales to fit its column, so the px geometry here stays exact.
+   ==========================================================================*/
+
+.pl-wrap {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  padding: 24px 28px 20px;
+  margin: 28px 0 6px;
+  --loop: 9s;
+}
+
+/* fit + fixed-coordinate stage (scaled by JS to keep the px math intact) */
+.pl-fit { width: 100%; overflow: hidden; }
+.pl-stage {
+  position: relative;
+  width: 1080px;
+  height: 344px;
+  transform-origin: top left;
+}
+
+/* -------------------------------------------------------------------- rails */
+.pl-rail {
+  position: absolute;
+  top: 184px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--line-strong);
+}
+.pl-rail::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 7px, transparent 7px 19px);
+  opacity: 0.5;
+}
+.pl-r1 { left: 235px; width: 70px; }
+.pl-r2 { left: 505px; width: 70px; }
+.pl-r3 { left: 775px; width: 70px; }
+
+/* ------------------------------------------------------------------ station */
+.pl-station { position: absolute; top: 56px; width: 210px; height: 210px; }
+.pl-s1 { left: 30px; }  .pl-s2 { left: 300px; } .pl-s3 { left: 570px; } .pl-s4 { left: 840px; }
+
+.pl-card {
+  position: absolute;
+  inset: 26px 5px 5px;
+  background: var(--card);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+}
+.pl-label {
+  position: absolute;
+  top: 0; left: 6px;
+  font-size: 11.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--navy);
+}
+.pl-label .pl-n {
+  display: inline-block;
+  width: 17px; height: 17px;
+  line-height: 17px;
+  text-align: center;
+  border-radius: 5px;
+  background: var(--navy);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  margin-right: 7px;
+  vertical-align: -2px;
+}
+
+/* accent ring that lights when the record lands (resting: off) */
+.pl-glow {
+  position: absolute; inset: -1.5px;
+  border-radius: 14px;
+  border: 1.5px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- station 1: regulation text -------------------------------------- */
+.pl-doc { padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+.pl-doc .pl-ln { height: 7px; border-radius: 3px; background: var(--line-strong); opacity: 0.9; }
+.pl-doc .w1 { width: 92%; } .pl-doc .w2 { width: 74%; } .pl-doc .w3 { width: 86%; }
+.pl-doc .w4 { width: 60%; } .pl-doc .w5 { width: 80%; } .pl-doc .w6 { width: 48%; }
+.pl-doc .pl-key { background: var(--navy); opacity: 0.85; }   /* resting: the "clause" lines already marked */
+.pl-scan {
+  position: absolute; left: 0; right: 0; height: 26px;
+  background: linear-gradient(180deg, transparent, rgba(46, 111, 176, 0.20), transparent);
+  top: -30px; opacity: 0;   /* resting: parked off-card */
+}
+
+/* ---- station 2: rules rack ------------------------------------------- */
+.pl-rack { padding: 14px 13px; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); }
+.pl-rule {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 10.5px; color: var(--muted);
+  background: var(--chip-bg); border: 1px solid var(--line);
+  border-radius: 7px; padding: 6px 8px;
+}
+.pl-rule .pl-op { color: var(--accent); font-weight: 700; }
+.pl-rule .pl-tick {
+  margin-left: auto; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--ok-soft); border: 1px solid var(--ok-line);
+  color: var(--ok); font-size: 10px; line-height: 14px; text-align: center;
+}
+
+/* ---- station 3: validation gate + data river ------------------------- */
+.pl-gate { position: absolute; inset: 26px 5px 5px; overflow: hidden; }
+.pl-gatehead {
+  position: absolute; top: 12px; left: 14px; right: 14px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em;
+  color: var(--faint); text-align: center;
+}
+.pl-cells {
+  position: absolute; left: 16px; right: 16px; top: 34px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px;
+}
+.pl-cell {
+  height: 30px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 10px;
+  /* resting frame: validated green */
+  background: var(--ok-soft); border: 1px solid var(--ok-line); color: var(--ok);
+}
+.pl-cell.pl-warn { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+.pl-river { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.pl-drop {
+  position: absolute; bottom: -18px;
+  width: 26px; height: 13px; border-radius: 3px;
+  background: var(--accent); opacity: 0;   /* resting: no flow */
+  font-family: var(--font-mono); font-size: 8px; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ---- station 4: supervisor sign-off ---------------------------------- */
+.pl-screen { position: absolute; inset: 26px 5px 5px; padding: 13px; overflow: hidden; }
+.pl-vrow {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+  opacity: 1;   /* resting: results visible */
+}
+.pl-vrow .pl-k { color: var(--faint); }
+.pl-vrow .pl-v { margin-left: auto; font-weight: 700; }
+.pl-vrow .pl-v.pl-ok { color: var(--ok); }
+.pl-vrow .pl-v.pl-note { color: var(--warn); }
+
+.pl-stamp {
+  position: absolute; left: 50%; top: 116px;
+  transform: translate(-50%, -50%) rotate(-9deg) scale(1);   /* resting: pressed in */
+  padding: 7px 16px; border-radius: 999px;
+  border: 2.5px solid var(--ok);
+  color: var(--ok); background: color-mix(in srgb, var(--ok-soft) 82%, transparent);
+  font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: 0.02em;
+  opacity: 1;
+  display: flex; align-items: center; gap: 7px;
+}
+.pl-stamp .pl-lock { width: 13px; height: 13px; }
+.pl-seal-ring {
+  position: absolute; left: 50%; top: 116px; width: 30px; height: 30px;
+  border: 2px solid var(--ok); border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1); opacity: 0;
+}
+
+/* ---- the traveling consignment (three segments) ---------------------- */
+.pl-mover { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform; }
+.pl-pill {
+  position: absolute; transform: translate(-50%, -50%);
+  padding: 4px 9px; border-radius: 7px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  white-space: nowrap; box-shadow: var(--shadow-2);
+}
+.pl-pill.pl-clause { background: var(--navy); color: #fff; }
+.pl-pill.pl-ruletok { background: var(--accent); color: #fff; }
+.pl-pill.pl-result { background: var(--card); color: var(--ok); border: 1.5px solid var(--ok-line); }
+
+/* ---- progress rail --------------------------------------------------- */
+.pl-progress { position: absolute; left: 30px; right: 30px; bottom: 6px; height: 3px; background: var(--line); border-radius: 3px; }
+.pl-progress .pl-fill {
+  position: absolute; inset: 0; background: var(--accent); border-radius: 3px;
+  transform: scaleX(1); transform-origin: left;   /* resting: complete */
+}
+
+/* ---- act legend (below the stage) ------------------------------------ */
+.pl-acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+.pl-act { border-top: 2px solid var(--line-strong); padding-top: 10px; }
+.pl-act .pl-tag { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+.pl-act .pl-h { font-family: var(--font-display); font-size: 14.5px; font-weight: 600; color: var(--ink); margin: 3px 0 3px; }
+.pl-act .pl-d { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.45; }
+.pl-act.pl-human { border-top-color: var(--ok); }
+.pl-act.pl-human .pl-h { color: var(--ok); }
+
+.pl-foot {
+  margin: 16px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.pl-foot b { color: var(--navy); font-weight: 600; }
+
+/* ============================================================ motion only */
+@media (prefers-reduced-motion: no-preference) {
+  .pl-rail::after { animation: pl-railflow 0.9s linear infinite; }
+  @keyframes pl-railflow { to { background-position: 26px 0; } }
+
+  .pl-s1 .pl-glow { animation: pl-glow var(--loop) ease-in-out infinite; animation-delay: calc(var(--loop) * 0.02); }
+  .pl-s2 .pl-glow { animation: pl-glow var(--loop) ease-in-out infinite; animation-delay: calc(var(--loop) * 0.20); }
+  .pl-s3 .pl-glow { animation: pl-glow var(--loop) ease-in-out infinite; animation-delay: calc(var(--loop) * 0.36); }
+  .pl-s4 .pl-glow { animation: pl-glow var(--loop) ease-in-out infinite; animation-delay: calc(var(--loop) * 0.60); }
+  @keyframes pl-glow {
+    0%, 4% { opacity: 0; } 7% { opacity: 1; } 16% { opacity: 0.9; } 22% { opacity: 0; } 100% { opacity: 0; }
+  }
+
+  .pl-scan { animation: pl-scan var(--loop) ease-in-out infinite; }
+  @keyframes pl-scan {
+    0%, 3% { top: -30px; opacity: 0; }
+    5% { opacity: 1; }
+    12% { top: 150px; opacity: 1; }
+    14% { top: 160px; opacity: 0; }
+    100% { top: 160px; opacity: 0; }
+  }
+  .pl-doc .pl-key { animation: pl-keyline var(--loop) ease-in-out infinite; }
+  @keyframes pl-keyline {
+    0%, 8% { background: var(--line-strong); } 11% { background: var(--accent); } 16% { background: var(--navy); } 100% { background: var(--navy); }
+  }
+
+  .pl-rule.pl-hot { animation: pl-rulein var(--loop) ease-out infinite; }
+  @keyframes pl-rulein {
+    0%, 22% { opacity: 0; transform: translateY(8px) scale(0.98); border-color: var(--line); }
+    26% { opacity: 1; transform: translateY(0) scale(1); border-color: var(--accent); }
+    30% { border-color: var(--accent); }
+    40% { border-color: var(--line); }
+    100% { opacity: 1; transform: translateY(0); border-color: var(--line); }
+  }
+  .pl-rule.pl-hot .pl-tick { animation: pl-tickpop var(--loop) ease-out infinite; }
+  @keyframes pl-tickpop {
+    0%, 27% { opacity: 0.2; transform: scale(0.6); }
+    30% { opacity: 1; transform: scale(1.25); }
+    34% { opacity: 1; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .pl-cell { animation: pl-cellflip var(--loop) ease-out infinite; }
+  .pl-cell.pl-warn { animation-name: pl-cellwarn; }
+  .pl-cell:nth-child(1) { animation-delay: calc(var(--loop) * -0.005); }
+  .pl-cell:nth-child(2) { animation-delay: calc(var(--loop) * -0.020); }
+  .pl-cell:nth-child(3) { animation-delay: calc(var(--loop) * -0.035); }
+  .pl-cell:nth-child(4) { animation-delay: calc(var(--loop) * -0.050); }
+  .pl-cell:nth-child(5) { animation-delay: calc(var(--loop) * -0.065); }
+  .pl-cell:nth-child(6) { animation-delay: calc(var(--loop) * -0.080); }
+  @keyframes pl-cellflip {
+    0%, 40% { background: var(--chip-bg); border-color: var(--line-strong); color: var(--faint); }
+    45% { background: var(--ok-soft); border-color: var(--ok-line); color: var(--ok); transform: scale(1.06); }
+    49% { transform: scale(1); }
+    94% { background: var(--ok-soft); border-color: var(--ok-line); color: var(--ok); }
+    99% { background: var(--chip-bg); border-color: var(--line-strong); color: var(--faint); }
+    100% { background: var(--chip-bg); }
+  }
+  @keyframes pl-cellwarn {
+    0%, 40% { background: var(--chip-bg); border-color: var(--line-strong); color: var(--faint); }
+    45% { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); transform: scale(1.06); }
+    49% { transform: scale(1); }
+    94% { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+    99% { background: var(--chip-bg); border-color: var(--line-strong); color: var(--faint); }
+    100% { background: var(--chip-bg); }
+  }
+
+  .pl-drop { animation: pl-rise 2.4s linear infinite; }
+  @keyframes pl-rise {
+    0% { transform: translateY(0); opacity: 0; }
+    12% { opacity: 0.9; }
+    80% { opacity: 0.9; }
+    100% { transform: translateY(-215px); opacity: 0; }
+  }
+
+  .pl-vrow { animation: pl-vrowin var(--loop) ease-out infinite; }
+  .pl-vrow:nth-child(1) { animation-delay: calc(var(--loop) * -0.005); }
+  .pl-vrow:nth-child(2) { animation-delay: calc(var(--loop) * -0.018); }
+  .pl-vrow:nth-child(3) { animation-delay: calc(var(--loop) * -0.031); }
+  @keyframes pl-vrowin {
+    0%, 60% { opacity: 0; transform: translateX(-6px); }
+    66% { opacity: 1; transform: translateX(0); }
+    96% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .pl-stamp { animation: pl-stamp var(--loop) cubic-bezier(0.34, 1.7, 0.5, 1) infinite; }
+  @keyframes pl-stamp {
+    0%, 72% { opacity: 0; transform: translate(-50%, -50%) rotate(-9deg) scale(2.1); }
+    76% { opacity: 1; transform: translate(-50%, -50%) rotate(-9deg) scale(0.92); }
+    80% { transform: translate(-50%, -50%) rotate(-9deg) scale(1.06); }
+    83% { transform: translate(-50%, -50%) rotate(-9deg) scale(1); }
+    95% { opacity: 1; transform: translate(-50%, -50%) rotate(-9deg) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(-9deg) scale(1); }
+  }
+  .pl-seal-ring { animation: pl-seal var(--loop) ease-out infinite; }
+  @keyframes pl-seal {
+    0%, 75% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    78% { opacity: 0.6; }
+    88% { opacity: 0; transform: translate(-50%, -50%) scale(4.2); }
+    100% { opacity: 0; }
+  }
+
+  /* station centres (x): s1=135 s2=405 s3=675 s4=945 ; rail y=184 */
+  .pl-m1 { animation: pl-seg1 var(--loop) cubic-bezier(0.5, 0, 0.2, 1) infinite; }
+  .pl-m2 { animation: pl-seg2 var(--loop) cubic-bezier(0.5, 0, 0.2, 1) infinite; }
+  .pl-m3 { animation: pl-seg3 var(--loop) cubic-bezier(0.5, 0, 0.2, 1) infinite; }
+  @keyframes pl-seg1 {
+    0%, 13% { opacity: 0; transform: translate(135px, 184px) scale(0.7); }
+    15% { opacity: 1; transform: translate(135px, 184px) scale(1); }
+    24% { opacity: 1; transform: translate(405px, 184px) scale(1); }
+    27% { opacity: 0; transform: translate(405px, 184px) scale(0.9); }
+    100% { opacity: 0; transform: translate(405px, 184px) scale(0.9); }
+  }
+  @keyframes pl-seg2 {
+    0%, 31% { opacity: 0; transform: translate(405px, 184px) scale(0.7); }
+    34% { opacity: 1; transform: translate(405px, 184px) scale(1); }
+    40% { opacity: 1; transform: translate(675px, 184px) scale(1); }
+    43% { opacity: 0; transform: translate(675px, 184px) scale(0.9); }
+    100% { opacity: 0; transform: translate(675px, 184px) scale(0.9); }
+  }
+  @keyframes pl-seg3 {
+    0%, 53% { opacity: 0; transform: translate(675px, 184px) scale(0.7); }
+    56% { opacity: 1; transform: translate(675px, 184px) scale(1); }
+    62% { opacity: 1; transform: translate(945px, 184px) scale(1); }
+    65% { opacity: 0; transform: translate(945px, 184px) scale(0.9); }
+    100% { opacity: 0; transform: translate(945px, 184px) scale(0.9); }
+  }
+
+  .pl-progress .pl-fill { animation: pl-prog var(--loop) linear infinite; }
+  @keyframes pl-prog { 0%, 4% { transform: scaleX(0); } 96%, 100% { transform: scaleX(1); } }
+
+  .pl-act { animation: pl-actlit var(--loop) ease-in-out infinite; }
+  .pl-act:nth-child(1) { animation-delay: calc(var(--loop) * 0.00); }
+  .pl-act:nth-child(2) { animation-delay: calc(var(--loop) * 0.20); }
+  .pl-act:nth-child(3) { animation-delay: calc(var(--loop) * 0.38); }
+  .pl-act:nth-child(4) { animation-delay: calc(var(--loop) * 0.62); }
+  @keyframes pl-actlit {
+    0%, 6% { border-top-color: var(--line-strong); }
+    9% { border-top-color: var(--accent); }
+    20% { border-top-color: var(--accent); }
+    26% { border-top-color: var(--line-strong); }
+    100% { border-top-color: var(--line-strong); }
+  }
+  .pl-act.pl-human { animation: none; }
+}
+
+@media (max-width: 720px) {
+  .pl-wrap { padding: 18px 16px 16px; }
+  .pl-acts { grid-template-columns: repeat(2, 1fr); gap: 10px 12px; }
+}
