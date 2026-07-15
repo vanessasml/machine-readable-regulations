@@ -10,6 +10,12 @@ __pycache__/
 review.html
 .DS_Store
 
+# source regulation PDFs (inputs to ingest.py; source them from the EBA)
+pdfs/
+
+# standalone UI mockup / scratch
+reworked_UI.html
+
 .claude/
 node_modules/
 dist/

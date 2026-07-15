@@ -87,7 +87,7 @@ library.
 
 ```bash
 # 1. Ingest PDFs → data/regulations/*.json   (calls the parser package)
-python ingest.py path/to/pdfs            # or set REG_PDF_DIR; defaults to ../eba-regulations-parser/examples/pdfs
+python ingest.py pdfs                    # or set REG_PDF_DIR; defaults to ../eba-regulations-parser/examples/pdfs
 
 # 2. Match datapoints → provisions
 python match.py                          # -> matches.json
@@ -109,6 +109,34 @@ python build_ui.py                       # -> review.html (Home + 8-tab Workflow
 ```
 
 Then open `review.html` in any browser.
+
+## Run the UI app (React dev server)
+
+The React app in `ui-app/` reads a single `payload.json` at the repo root — the packed
+bundle of every dataset the tabs display (matches, **regulations**, datapoints, banks,
+rules). `build_ui.py` writes it. The dev server serves it live from
+`/artifacts/payload.json`, so once it exists a browser refresh is enough to see changes.
+
+```bash
+python build_ui.py       # (re)generate payload.json at the repo root
+cd ui-app
+npm install              # first time only
+npm run dev              # Vite dev server → http://localhost:5173
+```
+
+**If regulations (or any other data) don't show up in the Inputs tabs, `payload.json` is
+stale — regenerate it.** The regulation JSONs live in `data/regulations/` (git-ignored,
+produced by `ingest.py`), but the app never reads that folder directly; it only reads the
+baked `payload.json`. So the corpus appears in the UI **only after** `build_ui.py` folds
+it in. Any time you re-ingest, re-run `build_ui.py` and refresh the browser:
+
+```bash
+python ingest.py pdfs    # data/regulations/*.json
+python build_ui.py       # -> payload.json  ("... N regulations")   <-- do not skip
+```
+
+`npm run build` produces a self-contained bundle in `ui-app/dist/`; `build_ui.py` then
+inlines `payload.json` into it to emit the standalone `review.html`.
 
 ## Data contracts
 
