@@ -1,4 +1,4 @@
-# reg-datapoint-mapper — machine-readable regulations, end to end
+# Machine-readable regulations, end to end
 
 A working proof of concept for the pilot: from the **regulation text** to a **supervisor's
 decision** on a bank's return, with every step machine-readable and every consequential
