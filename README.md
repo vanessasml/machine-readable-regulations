@@ -10,6 +10,10 @@ in one place — `ingest.py` — to turn regulation PDFs into citation-anchored 
 of the app never imports the parser; it works off that JSON. Swapping the parser version is
 a dependency bump, nothing else.
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c4d9fb53-2d38-4cdb-93d3-a0ff4f84de70" width="850">
+</p>
+
 ## The approach
 
 One regulation is currently re-interpreted by hand three times: authorities derive
@@ -48,8 +52,24 @@ Two principles carry the whole design:
 
 ## The app
 
-`review.html` is fully self-contained (data inlined, no external requests, no server).
-It has two pages:
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <b>Tab ①</b><br/>
+      <img src="https://github.com/user-attachments/assets/10424d83-ae24-448c-957a-99ed5a607dc8" width="100%">
+    </td>
+    <td width="50%" align="center">
+      <b>Tab ④</b><br/>
+      <img src="https://github.com/user-attachments/assets/0280c640-d10c-40f0-8d8f-48c8e4df7283" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <b>Verdict: Approved / Not approved</b><br/>
+      <img src="https://github.com/user-attachments/assets/0adf2d98-eb11-4eb7-ac07-92ba01917116" width="75%">
+    </td>
+  </tr>
+</table>
 
 **Home** — the problem statement and the schema above, rendered as components.
 
